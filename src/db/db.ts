@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 // Connection String
 const uri = 'mongodb://localhost:27017/myDatabase';
 
-// Conectar ao MongoDB com Mongoose
+// Connecting MongoDB using Mongoose
 async function connectToDatabase() {
   try {
     await mongoose.connect(uri, {

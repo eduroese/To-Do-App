@@ -2,7 +2,6 @@ import Image from "next/image";
 import connectToDatabase from "../db/db";
 
 export default async function Home() {
-  // Conecta ao banco de dados
   try {
     await connectToDatabase();
   } catch (error) {

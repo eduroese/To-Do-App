@@ -150,46 +150,48 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest) {
   const { completed, type, name, color, category } = await req.json();
+  const pathname = req.nextUrl.pathname;
+  const id = pathname.split('/').pop(); 
 
-  if(type == "Task"){
-  try {
-    await connectToDatabase();
+  if (type == "Task") {
+    try {
+      await connectToDatabase();
 
-    const updatedTask = await Tasks.findByIdAndUpdate(
-      params.id,
-      { completed, category },
-      { new: true }
-    );
+      const updatedTask = await Tasks.findByIdAndUpdate(
+        id,
+        { completed, category },
+        { new: true }
+      );
 
-    if (!updatedTask) {
-      return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
+      if (!updatedTask) {
+        return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
+      }
+
+      return NextResponse.json(updatedTask);
+    } catch (error) {
+      return NextResponse.json({ error: "Erro ao atualizar tarefa" }, { status: 500 });
     }
+  } else if (type == "Category") {
+    try {
+      await connectToDatabase();
 
-    return NextResponse.json(updatedTask);
-  } catch (error) {
-    return NextResponse.json({ error: "Erro ao atualizar tarefa" }, { status: 500 });
-  }
-}else if(type == "Category"){
-  try {
-    await connectToDatabase();
+      const updatedCategory = await Categories.findByIdAndUpdate(
+        id,
+        { name, color },
+        { new: true }
+      );
 
-    const updatedCategory = await Categories.findByIdAndUpdate(
-      params.id,
-      { name, color },
-      { new: true }
-    );
+      if (!updatedCategory) {
+        return NextResponse.json({ error: "Categoria não encontrada" }, { status: 404 });
+      }
 
-    if (!updatedCategory) {
-      return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
+      return NextResponse.json(updatedCategory);
+    } catch (error) {
+      return NextResponse.json({ error: "Erro ao atualizar categoria" }, { status: 500 });
     }
-
-    return NextResponse.json(updatedCategory);
-  } catch (error) {
-    return NextResponse.json({ error: "Erro ao atualizar tarefa" }, { status: 500 });
   }
-}
 }
 
 export async function DELETE(req: NextRequest) {

@@ -13,7 +13,7 @@ const eslintConfig = [
   ...compat.config({
     extends: ['next/core-web-vitals', 'next/typescript'],
     rules: {
-      "@typescript-eslint/no-unused-vars": "off",
+      //"@typescript-eslint/no-unused-vars": "off",
       "react/no-unescaped-entities": "off",
       "@typescript-eslint/no-wrapper-object-types": "off"
     },

@@ -6,14 +6,22 @@ Descrição:
 
 Um aplicativo web para gerenciar tarefas com funcionalidades como criar, excluir e marcar como concluídas.
 
-Utilizando Next.js no frontend e Node.js no backend.
+Tecnologias Utilizadas:
 
-Armazenamento de dados em MongoDB.
+- Frontend: Next.js
+- Backend: Node.js
+- Banco de Dados: MongoDB
 
 Destaques:
 
-Autenticação de usuário (usando JWT).
+- Registro e login de usuários implementados.
 
-Implementação de testes automatizados com Jest.
+- Sistema de categorias para organização das tarefas.
 
-Interface responsiva.
+- Interface responsiva com componentes estilizados.
+
+- Implementação de funcionalidades assíncronas para comunicação com a API.
+
+- Possibilidade de adicionar, excluir e marcar tarefas como concluídas.
+
+- Botões e interações com dicas visuais (tooltips).

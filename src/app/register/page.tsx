@@ -7,8 +7,8 @@ export default function RegisterUser() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault(); // Previne o comportamento padrão do formulário
-    setError(null); // Reseta o erro anterior
+    event.preventDefault();
+    setError(null);
 
     try {
       const response = await fetch("/api/tasks/[id]", {
@@ -28,8 +28,7 @@ export default function RegisterUser() {
       const data = await response.json();
       console.log("Registro bem-sucedido:", data);
 
-      // Redireciona o usuário ou realiza outra ação
-      window.location.href = "/login"; // Exemplo de redirecionamento
+      window.location.href = "/login";
     } catch (error) {
       console.error("Erro ao realizar Registro:", error);
       setError("Erro ao conectar com o servidor");

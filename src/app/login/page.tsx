@@ -7,8 +7,8 @@ export default function LoginUser() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault(); // Previne o comportamento padrão do formulário
-    setError(null); // Reseta o erro anterior
+    event.preventDefault();
+    setError(null);
 
     try {
       const response = await fetch("/api/tasks/[id]", {
@@ -30,8 +30,7 @@ export default function LoginUser() {
 
       localStorage.setItem("user", data.user);
 
-      // Redireciona o usuário ou realiza outra ação
-      window.location.href = "/"; // Exemplo de redirecionamento
+      window.location.href = "/";
     } catch (error) {
       console.error("Erro ao realizar login:", error);
       setError("Erro ao conectar com o servidor");

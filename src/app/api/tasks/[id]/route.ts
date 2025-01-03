@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 
 const saltRounds = 10;
 
@@ -9,7 +9,7 @@ const taskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   user: { type: String, required: true },
   completed: { type: Number, enum: [0, 1], required: true },
-  category: { type: String, required: false },
+  category: { type: String },
 });
 
 const userSchema = new mongoose.Schema({
@@ -25,221 +25,220 @@ const categoriesSchema = new mongoose.Schema({
 
 const Tasks = mongoose.models.Task || mongoose.model("Task", taskSchema);
 const User = mongoose.models.User || mongoose.model("User", userSchema);
-const Categories = mongoose.models.Categories || mongoose.model("Categories", categoriesSchema);
+const Categories =
+  mongoose.models.Categories || mongoose.model("Categories", categoriesSchema);
 
 async function connectToDatabase() {
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/ToDoApp");
+    await mongoose.connect("mongodb://127.0.0.1:27017/ToDoApp");
   }
+}
+
+async function handleTaskRequest(
+  req: NextRequest,
+  {
+    title,
+    user,
+    completed,
+    category,
+  }: { title: string; user: string; completed: Number; category: string }
+) {
+  await connectToDatabase();
+  const task = new Tasks({ title, user, completed, category: "" });
+  return await task.save();
+}
+
+async function handleUserRegistration({
+  username,
+  password,
+}: {
+  username: string;
+  password: string;
+}) {
+  await connectToDatabase();
+  const existingUser = await User.findOne({ username });
+  if (existingUser) throw new Error("Usuário já registrado");
+  const hashedPassword = await bcrypt.hash(
+    password,
+    await bcrypt.genSalt(saltRounds)
+  );
+  const newUser = new User({ username, password: hashedPassword });
+  return await newUser.save();
+}
+
+async function handleUserLogin({
+  username,
+  password,
+}: {
+  username: string;
+  password: string;
+}) {
+  await connectToDatabase();
+  const user = await User.findOne({ username });
+  if (!user || !(await bcrypt.compare(password, user.password)))
+    throw new Error("Credenciais inválidas");
+  return user;
+}
+
+async function handleCategoryRequest({
+  name,
+  color,
+  user,
+}: {
+  name: string;
+  color: string;
+  user: string;
+}) {
+  await connectToDatabase();
+  const category = new Categories({ name, color, user });
+  return await category.save();
+}
+
+async function updateDocumentById(
+  model: any,
+  id: string | Number | undefined,
+  updateData: any
+) {
+  return await model.findByIdAndUpdate(id, updateData, { new: true });
+}
+
+async function deleteDocumentById(model: any, id: string | Number) {
+  return await model.findByIdAndDelete(id);
 }
 
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
-
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('user');
-
-    if (!userId) {
+    const userId = new URL(req.url).searchParams.get("user");
+    if (!userId)
       return NextResponse.json(
         { error: "O parâmetro 'user' é obrigatório" },
         { status: 400 }
       );
-    }
 
-    const categoriesUser = await Categories.find({ user: userId });
-    const tasks = await Tasks.find({ user: userId });
+    const [tasks, categories] = await Promise.all([
+      Tasks.find({ user: userId }),
+      Categories.find({ user: userId }),
+    ]);
 
-    return NextResponse.json({
-      tasks: tasks,
-      categories: categoriesUser,
-    });
+    return NextResponse.json({ tasks, categories });
   } catch (error) {
-    console.error("Erro ao buscar tarefas:", error);
+    console.error(error);
     return NextResponse.json(
-      { error: "Erro ao buscar tarefas" },
+      { error: "Erro ao buscar dados" },
       { status: 500 }
     );
   }
 }
 
 export async function POST(req: NextRequest) {
-  const { title, user, completed, type, username, password, name, color, category } = await req.json();
+  try {
+    const data = await req.json();
+    let response;
 
-  if (type === "Task") {
-    try {
-      await connectToDatabase();
-
-      const task = new Tasks({ title, user, completed, category });
-      const savedTask = await task.save();
-
-      return NextResponse.json(savedTask, { status: 201 });
-    } catch (error) {
-      console.error("Erro ao adicionar tarefa:", error);
-      return NextResponse.json({ error: "Erro ao adicionar tarefa" }, { status: 500 });
-    }
-  } else if (type === "Register") {
-    try {
-      await connectToDatabase();
-    
-      if (!username || !password) {
+    switch (data.type) {
+      case "Task":
+        response = await handleTaskRequest(req, data);
+        break;
+      case "Register":
+        response = await handleUserRegistration(data);
+        break;
+      case "Login":
+        response = await handleUserLogin(data);
+        response = { message: "Login bem-sucedido", user: response.username };
+        break;
+      case "Category":
+        response = await handleCategoryRequest(data);
+        break;
+      default:
         return NextResponse.json(
-          { error: "Os campos 'username' e 'password' são obrigatórios" },
+          { error: "Tipo de requisição inválido" },
           { status: 400 }
         );
-      }
-  
-      const existingUser = await User.findOne({ username });
-      if (existingUser) {
-        return NextResponse.json({ error: "Usuário já registrado" }, { status: 400 });
-      }
-  
-      const salt = await bcrypt.genSalt(saltRounds);
-      const hashedPassword = await bcrypt.hash(password, salt);
+    }
 
-      const newUser = new User({ username, password: hashedPassword });
-      const savedUser = await newUser.save();
-  
-      return NextResponse.json(savedUser, { status: 201 });
-    } catch (error) {
-      console.error("Erro ao registrar usuário:", error);
-      return NextResponse.json({ error: "Erro ao registrar usuário" }, { status: 500 });
-    }
-  }else if(type == "Login"){
-    try {
-      await connectToDatabase();
-  
-      if (!username || !password) {
-        return NextResponse.json(
-          { error: "Os campos 'username' e 'password' são obrigatórios" },
-          { status: 400 }
-        );
-      }
-  
-      const existingUser = await User.findOne({ username });
-      const storedHashPassword =  await bcrypt.compare(password, existingUser.password);
-  
-      if (!existingUser) {
-        return NextResponse.json({ error: "Usuário não encontrado" }, { status: 404 });
-      }
-  
-      if (!storedHashPassword) {
-        return NextResponse.json({ error: "Senha incorreta" }, { status: 401 });
-      }
-  
-      return NextResponse.json(
-        { message: "Login bem-sucedido", user: existingUser.username},
-        { status: 200 }
-      );
-    } catch (error) {
-      console.error("Erro ao realizar login:", error);
-      return NextResponse.json({ error: "Erro ao realizar login" }, { status: 500 });
-    }
-  }else if(type == "Category"){
-    try {
-      await connectToDatabase();
-  
-      const newCategory = new Categories({ name, color, user });
-      const savedCategory = await newCategory.save();
-
-      return NextResponse.json(savedCategory, { status: 201 });
-    } catch (error) {
-      console.error("Erro ao salvar categoria:", error);
-      return NextResponse.json({ error: "Erro ao salvar categoria" }, { status: 500 });
-    }
+    return NextResponse.json(response, { status: 201 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({
+      error: "Erro ao processar requisição",
+      status: 500,
+    });
   }
 }
 
 export async function PUT(req: NextRequest) {
-  const { completed, type, name, color, category } = await req.json();
-  const pathname = req.nextUrl.pathname;
-  const id = pathname.split('/').pop(); 
+  try {
+    const data = await req.json();
+    const id = req.nextUrl.pathname.split("/").pop();
+    let model;
 
-  if (type == "Task") {
-    try {
-      await connectToDatabase();
+    switch (data.type) {
+      case "Task":
+        model = Tasks;
+        break;
+      case "Category":
+        model = Categories;
+        break;
+      default:
+        return NextResponse.json(
+          { error: "Tipo de requisição inválido" },
+          { status: 400 }
+        );
+    }
 
-      const updatedTask = await Tasks.findByIdAndUpdate(
-        id,
-        { completed, category },
-        { new: true }
+    const updatedDoc = await updateDocumentById(model, id, data);
+    if (!updatedDoc)
+      return NextResponse.json(
+        { error: `${data.type} não encontrado` },
+        { status: 404 }
       );
 
-      if (!updatedTask) {
-        return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
-      }
-
-      return NextResponse.json(updatedTask);
-    } catch (error) {
-      return NextResponse.json({ error: "Erro ao atualizar tarefa" }, { status: 500 });
-    }
-  } else if (type == "Category") {
-    try {
-      await connectToDatabase();
-
-      const updatedCategory = await Categories.findByIdAndUpdate(
-        id,
-        { name, color },
-        { new: true }
-      );
-
-      if (!updatedCategory) {
-        return NextResponse.json({ error: "Categoria não encontrada" }, { status: 404 });
-      }
-
-      return NextResponse.json(updatedCategory);
-    } catch (error) {
-      return NextResponse.json({ error: "Erro ao atualizar categoria" }, { status: 500 });
-    }
+    return NextResponse.json(updatedDoc);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Erro ao atualizar documento" },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(req: NextRequest) {
-    const {type} = await req.json();
+  try {
+    const { type } = await req.json();
+    const id = new URL(req.url).pathname.split("/").pop();
+    if (!id)
+      return NextResponse.json({ error: "ID não fornecido" }, { status: 400 });
 
-    if(type == "Task"){
-    try {
-      const url = new URL(req.url);
-      const id = url.pathname.split("/").pop();
-
-      if (!id) {
-        return NextResponse.json({ error: "ID não fornecido" }, { status: 400 });
-      }
-
-      await connectToDatabase();
-
-      const deletedTask = await Tasks.findByIdAndDelete(id);
-
-      if (!deletedTask) {
-        return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
-      }
-
-      return NextResponse.json({ message: "Tarefa deletada com sucesso" }, { status: 200 });
-    } catch (error) {
-      console.error("Erro ao deletar tarefa:", error);
-      return NextResponse.json({ error: "Erro ao deletar tarefa" }, { status: 500 });
+    let model;
+    switch (type) {
+      case "Task":
+        model = Tasks;
+        break;
+      case "Category":
+        model = Categories;
+        break;
+      default:
+        return NextResponse.json(
+          { error: "Tipo de requisição inválido" },
+          { status: 400 }
+        );
     }
-  }else if(type == "Category"){
-    try {
-      const url = new URL(req.url);
-      const id = url.pathname.split("/").pop();
 
-      if (!id) {
-        return NextResponse.json({ error: "ID não fornecido" }, { status: 400 });
-      }
+    const deletedDoc = await deleteDocumentById(model, id);
+    if (!deletedDoc)
+      return NextResponse.json(
+        { error: `${type} não encontrado` },
+        { status: 404 }
+      );
 
-      await connectToDatabase();
-
-      const deletedCategory = await Categories.findByIdAndDelete(id);
-
-      if (!deletedCategory) {
-        return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
-      }
-
-      return NextResponse.json({ message: "Tarefa deletada com sucesso" }, { status: 200 });
-    } catch (error) {
-      console.error("Erro ao deletar tarefa:", error);
-      return NextResponse.json({ error: "Erro ao deletar tarefa" }, { status: 500 });
-    }
+    return NextResponse.json({ message: `${type} deletado com sucesso` });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: "Erro ao deletar documento" },
+      { status: 500 }
+    );
   }
 }

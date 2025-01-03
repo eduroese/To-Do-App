@@ -70,7 +70,14 @@ export default function LoginUser() {
             Login
           </button>
           <div className="mb-4 flex items-center space-x-1 text-sm justify-center">
-            <p className="inline"> Don't have an account yet? Register</p> <a href="http://localhost:3000/register" className="inline text-blue-500 hover:underline"> here </a>
+            <p className="inline"> Don't have an account yet? Register</p>{" "}
+            <a
+              href="http://localhost:3000/register"
+              className="inline text-blue-500 hover:underline"
+            >
+              {" "}
+              here{" "}
+            </a>
           </div>
         </form>
       </div>

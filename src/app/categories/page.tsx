@@ -16,7 +16,9 @@ export default function Categories() {
   const [newCategoryColor, setNewCategoryColor] = useState<string>("#ffffff");
   const [userId, setUserId] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
-  const [categoriesOpenEditColorId, setCategoriesOpenEditColorId] = useState<string | null>(null);
+  const [categoriesOpenEditColorId, setCategoriesOpenEditColorId] = useState<
+    string | null
+  >(null);
   const [temporaryColor, setTemporaryColor] = useState<string>("");
 
   useEffect(() => {
@@ -68,12 +70,20 @@ export default function Categories() {
     }
   };
 
-  const editCategory = async (id: string, updatedName: string, updatedColor: string) => {
+  const editCategory = async (
+    id: string,
+    updatedName: string,
+    updatedColor: string
+  ) => {
     try {
       const response = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: updatedName, color: updatedColor, type: "Category" }),
+        body: JSON.stringify({
+          name: updatedName,
+          color: updatedColor,
+          type: "Category",
+        }),
       });
       if (response.ok) fetchCategories(userId!);
     } catch (error) {
@@ -140,7 +150,7 @@ export default function Categories() {
               Color
             </button>
             {showColorPicker && (
-              <div className="absolute z-10">
+              <div className="absolute z-10 color-picker-container">
                 <ChromePicker
                   color={newCategoryColor}
                   onChange={(color) => setNewCategoryColor(color.hex)}
@@ -165,36 +175,49 @@ export default function Categories() {
               <div className="flex items-center space-x-4">
                 <button
                   className="w-6 h-6 inline-block rounded-full"
-                  onClick={() =>{
-                    setCategoriesOpenEditColorId(categoriesOpenEditColorId === category._id ? null : category._id);
+                  onClick={() => {
+                    setCategoriesOpenEditColorId(
+                      categoriesOpenEditColorId === category._id
+                        ? null
+                        : category._id
+                    );
                     setTemporaryColor("");
                   }}
                   style={{ backgroundColor: category.color }}
                 ></button>
-                {categoriesOpenEditColorId == category._id && (
-              <div className="absolute right-full mr-4 top-0 w-64 bg-white shadow-md p-4 rounded-lg">
-                <ChromePicker
-                  color={temporaryColor ? temporaryColor : category.color}
-                  onChange={(color) => setTemporaryColor(color.hex)}
-                />
-              <div className="mt-2 flex justify-end">
-                <button
-                  onClick={() => {
-                    editCategory(category._id, category.name, temporaryColor);
-                    setCategoriesOpenEditColorId(categoriesOpenEditColorId === category._id ? null : category._id);
-                    setTemporaryColor("");
-                  }}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-            )}
+                {categoriesOpenEditColorId === category._id && (
+                  <div
+                    className="absolute z-50 p-2 bg-white border border-gray-300 rounded-lg shadow-lg"
+                    style={{ right: "100%", marginRight: "10px" }}
+                  >
+                    <ChromePicker
+                      color={temporaryColor || category.color}
+                      onChange={(color) => setTemporaryColor(color.hex)}
+                    />
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={() => {
+                          editCategory(
+                            category._id,
+                            category.name,
+                            temporaryColor
+                          );
+                          setCategoriesOpenEditColorId(null);
+                          setTemporaryColor("");
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <input
                   type="text"
                   value={category.name}
-                  onChange={(e) => editCategory(category._id, e.target.value, category.color)}
+                  onChange={(e) =>
+                    editCategory(category._id, e.target.value, category.color)
+                  }
                   className="p-2 border rounded focus:outline-none"
                 />
               </div>

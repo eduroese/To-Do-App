@@ -4,7 +4,7 @@ Projeto em TypeScript
 
 Descrição:
 
-Um aplicativo web para gerenciar tarefas com funcionalidades como criar, editar, excluir e marcar como concluídas.
+Um aplicativo web para gerenciar tarefas com funcionalidades como criar, excluir e marcar como concluídas.
 
 Utilizando Next.js no frontend e Node.js no backend.
 
